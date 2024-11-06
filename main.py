@@ -6,6 +6,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
+import requests
 import logging
 import logging.handlers
 import time
@@ -13,6 +14,7 @@ import os
 
 email = os.environ["USERNAME"]
 pwd = os.environ["PASSWORD"]
+webhook = "https://hooks.slack.com/services/"
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -104,29 +106,31 @@ try:
 except Exception as e:
     logger.error(f"An error occurred: {e}")
     # Perform API POST request
-    api_url = "https://hooks.slack.com/services/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"
     payload = {
-        blocks: [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Error to book class" + classToBook,
+        "attachments": [
+		    {
+		        "color": "#df0000",
+                "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Error to book class" + classToBook,
+                    },
                 },
-            },
-            {
-                "type": 'section',
-                "text": {
-                    "text": str(e),
-                    "type": "mrkdwn",
+                {
+                    "type": 'section',
+                    "text": {
+                        "text": str(e),
+                        "type": "mrkdwn",
+                    },
                 },
-            },
+                ]
+            }
         ]
     }
-    headers = {
-        "Content-Type": "application/json"
-    }
-    response = requests.post(api_url, json=payload, headers=headers)
+    headers = { "Content-Type": "application/json" }
+    response = requests.post(webhook, json=payload, headers=headers)
     if response.status_code == 200:
         logger.info("Error reported successfully.")
     else:
