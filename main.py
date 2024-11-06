@@ -41,7 +41,7 @@ options.add_argument("--window-size=1920,1080")
 # Initialize the Chrome driver
 driver = webdriver.Chrome(options)
 
-daysRange = 4 # Days reservation restriction
+daysRange = 2 # Days reservation restriction
 
 def denyCookies(driver):
     driver.find_element(By.CSS_SELECTOR, "#eucookielaw > div.conCookie > a:nth-child(1)").click()
@@ -49,13 +49,13 @@ def denyCookies(driver):
 current_day = datetime.now().strftime('%A')
 
 day_action = {
-    'Monday': 'WOD', # friday class
-    'Tuesday': 'SUPERWOD', # saturday class
-    'Wednesday': 'WOD SUNDAY', # sunday class
-    'Thursday': 'WOD', # monday class
-    'Friday': 'WEIGHTLIFTING', # tuesday class
-    'Saturday': 'ENDURANCE', # wednesday class
-    'Sunday': 'WOD' # thursday class
+    'Monday': 'Engine', # wed class
+    'Tuesday': 'WOD', # thursday class
+    'Wednesday': 'WOD', # friday class
+    'Thursday': 'Weekend MegaWod', # saturday class
+    'Friday': 'Weekend WOD', # sunday class
+    'Saturday': 'WOD', # monday class
+    'Sunday': 'WEIGHTLIFTING' # thursday class
 }
 
 classToBook = day_action.get(current_day, "WOD")
@@ -92,14 +92,45 @@ try:
     input_field.send_keys(classToBook)
     input_field.send_keys(Keys.ENTER)
 
-    reservar_link = WebDriverWait(driver, 10).until(
+    booking_link = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, "Reservar"))
     )
-    reservar_link.click()
+    booking_link.click()
 
     logger.info(classToBook + ' was booked succesfully!')
 
-    time.sleep(5)
+    time.sleep(5);
+
+except Exception as e:
+    logger.error(f"An error occurred: {e}")
+    # Perform API POST request
+    api_url = "https://hooks.slack.com/services/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"
+    payload = {
+        blocks: [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Error to book class" + classToBook,
+                },
+            },
+            {
+                "type": 'section',
+                "text": {
+                    "text": str(e),
+                    "type": "mrkdwn",
+                },
+            },
+        ]
+    }
+    headers = {
+        "Content-Type": "application/json"
+    }
+    response = requests.post(api_url, json=payload, headers=headers)
+    if response.status_code == 200:
+        logger.info("Error reported successfully.")
+    else:
+        logger.error(f"Failed to report error: {response.status_code}")
 
 finally:
     driver.quit()
